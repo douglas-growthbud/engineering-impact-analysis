@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PostHog Engineering Impact Analysis</title>
+<meta name="description" content="Who moved PostHog forward in the last 90 days, and why: a four-lens view of engineering impact built from the PostHog GitHub repo.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%232a78d6'/></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="title">
+    <h1>PostHog Engineering Impact Analysis</h1>
+  </div>
+  <div class="stats" id="stats"></div>
+  <button class="btn" id="howBtn" type="button">How it's scored</button>
+</header>
+
+<main class="grid">
+  <section class="rank" aria-label="Ranking">
+    <div class="legend" id="legend"></div>
+    <ol class="top5" id="top5"></ol>
+    <details class="next" open>
+      <summary>Ranks 6–20 <span class="muted">(every number is a percentile across eligible engineers; raw score in brackets)</span></summary>
+      <table id="nextTable"><thead><tr><th>#</th><th>Engineer</th><th>Composite</th><th>Shipped</th><th>Fixed</th><th>Multiplied</th><th>Risk held</th><th>PRs</th><th>Reviews</th></tr></thead><tbody></tbody></table>
+    </details>
+  </section>
+
+  <aside class="why" id="why" aria-live="polite"></aside>
+</main>
+
+<footer class="controls">
+  <div class="sliders" id="sliders"></div>
+  <label class="toggle"><input type="checkbox" id="faToggle"> Credit <b>fully-autonomous</b> agent PRs to their human assignee</label>
+  <button class="btn ghost" id="resetBtn" type="button">Reset weights</button>
+</footer>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="howTitle">
+    <button class="close" id="closeBtn" type="button" aria-label="Close">×</button>
+    <h2 id="howTitle">How it's scored</h2>
+    <p><b>Impact here means work whose effect on users or on other engineers is visible in the repo.</b> Lines of code, commits and PR counts are never inputs. Every PR earns credit only by clearing a quality bar in one of four lenses, and each lens sums an engineer's <b>15 strongest</b> credits, so a hundred small PRs cannot outrank ten important ones. Each lens becomes a percentile rank across eligible engineers (zero stays zero); the composite is the weighted sum you control with the sliders.</p>
+    <div class="cols">
+      <div>
+        <h3><i class="sw s1"></i>Shipped to users</h3>
+        <ul>
+          <li>Feature or perf PR shipped with no flag: <b>1.0</b>, plus <b>+0.5</b> if it closed a request someone else filed (up to +0.5 more for reactions and comments on that request).</li>
+          <li>Built behind a feature flag: <b>0.5</b>. It lifts to <b>1.0</b> when a later PR in the same area, touching the same files, made the feature available to everyone.</li>
+          <li>That gate-removal PR itself earns <b>0.25</b> (<b>0.10</b> if it is flag cleanup). PostHog flips flags in its flag UI, so the repo only sees gate removals.</li>
+          <li>The template's Release status marker appeared late in the window; older PRs are classified from their own wording ("behind a flag", "remove the flag") and the evidence says so.</li>
+        </ul>
+        <h3><i class="sw s2"></i>Fixed what hurt</h3>
+        <ul>
+          <li>Fix that closes an issue filed by someone else: <b>1.0</b> (<b>0.5</b> if self-filed), <b>+0.5</b> if the filer is not a PostHog contributor (not a public org member and merged no PRs in the window), up to <b>+0.5</b> for reactions and comments on the issue (people waiting).</li>
+          <li>Fix with no linked issue: <b>0.25</b>; severity unknown, no AI guessing.</li>
+          <li>Reverting a change, or hot-fixing someone else's change within 72 h: <b>+0.5</b> to <b>0.75</b> for firefighting.</li>
+        </ul>
+      </div>
+      <div>
+        <h3><i class="sw s3"></i>Multiplied others</h3>
+        <ul>
+          <li>A review counts when a human who is not the author requested changes or left inline comments. <b>1.0</b>, <b>+0.5</b> if the author pushed commits after it. Empty approvals count zero; bots never count.</li>
+          <li>Breadth matters: credits are grouped by the author reviewed and summed with diminishing returns, so 60 reviews of one teammate are worth far less than reviews across 60 people.</li>
+          <li>Reviews of agent-authored PRs are tagged as oversight. PRs whose files are mostly shared tooling (CI, dev env, agent skills) add <b>1.0</b> each, at most five.</li>
+        </ul>
+        <h3><i class="sw s4"></i>Carried risk, and it held</h3>
+        <ul>
+          <li>Radius of a PR = the most shared non-hub file it changed: engineers who changed that file in the window × a category multiplier (migrations 2×, HogQL/schema, ingestion, auth/billing 1.5×, CI 1.3×, tests/docs 0.3×) + a base so a solo migration counts like a file ten people work in.</li>
+          <li>Held: ×0 if the PR was reverted, ×0.5 if someone else hot-fixed its files within 72 h with a reference, a regression note, or a fresh issue in the same area.</li>
+          <li>Hub files touched by more than 20 PRs (lockfiles, generated schema) never count for radius or overlap.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Who gets credit</h3>
+    <p>PostHog's template names the human <b>DRI</b> as assignee when an agent did the work under direction, so credit goes to the assignee, else the author. PRs marked <b>Fully autonomous</b> credit nobody unless you flip the toggle. Bot accounts never earn credit. Each card shows the share of an engineer's PRs that were agent-assisted, as context rather than penalty.</p>
+    <h3>Eligibility</h3>
+    <p>An engineer needs at least 8 credited PRs spanning 3 weeks, or 10 substantive reviews.</p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

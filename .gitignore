@@ -1,0 +1,9 @@
+data/raw/
+data/prs.json
+data/fetch.log
+.vercel/
+.claude/
+node_modules/
+.DS_Store
+.env*
+*-context-*.txt

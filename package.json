@@ -1,0 +1,10 @@
+{
+  "name": "posthog-impact",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch": "bun run scripts/fetch.ts",
+    "analyze": "bun run scripts/analyze.ts",
+    "serve": "python3 -m http.server 8787 -d public"
+  }
+}
